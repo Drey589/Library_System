@@ -7,16 +7,16 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class Library {
-    private HashMap<String, Book> books;
-    private HashMap<String, Borrower> borrowers;
+    private ArrayList<Book> books;
+    private ArrayList<Borrower> borrowers;
 
     public Library() {
-        this.books = new HashMap<>();
-        this.borrowers = new HashMap<>();
+        this.books = new ArrayList<>();
+        this.borrowers = new ArrayList<>();
         initializeLibraryFromDatabase();
     }
 
@@ -48,7 +48,7 @@ public class Library {
                 String subject = resultSet.getString("subject");
 
                 Book book = new Book(title, author, stocks, subject);
-                books.put(title, book);
+                books.add(book);
             }
         }
     }
@@ -66,17 +66,17 @@ public class Library {
                 String phoneNumber = resultSet.getString("phoneNumber");
 
                 Borrower borrower = new Borrower(name, lastName, age, address, phoneNumber);
-                borrowers.put(name.toLowerCase(), borrower);
+                borrowers.add(borrower);
             }
         }
     }
 
-    public HashMap<String, Book> getBooks() {
+    public ArrayList<Book> getBooks() {
         return books;
     }
 
     public ArrayList<Borrower> getBorrowerList() {
-        return new ArrayList<>(borrowers.values());
+        return borrowers;
     }
 
     public void addBooksToDatabase(String title, String author, int stocks, String subject) {
@@ -175,6 +175,9 @@ public class Library {
 
                 System.out.println("Removed book from the database: " + title);
             }
+        } catch (SQLIntegrityConstraintViolationException e) {
+            // Catch the specific exception for foreign key constraint violation
+            System.out.println("Cannot delete the book '" + title + "' because someone borrowed this.");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -194,17 +197,17 @@ public class Library {
         System.out.println("\nLibrary Books:");
         for (Book book : books) {
             System.out.println("\n-------------------------------\n");
-            System.out.println("Title: "+ book.getTitle());
-            System.out.println("Author: "+ book.getAuthor());
-            System.out.println("Subject: "+ book.getSubject());
-            System.out.println("Available: "+ book.getNumStocks());
+            System.out.println("Title: " + book.getTitle());
+            System.out.println("Author: " + book.getAuthor());
+            System.out.println("Subject: " + book.getSubject());
+            System.out.println("Available: " + book.getNumStocks());
         }
         System.out.println("");
     }
 
     public ArrayList<Book> searchBySubject(String subject) {
         ArrayList<Book> subjectBooks = new ArrayList<>();
-        for (Book book : books.values()) {
+        for (Book book : books) {
             if (book.getSubject().equalsIgnoreCase(subject)) {
                 subjectBooks.add(book);
             }
@@ -212,8 +215,8 @@ public class Library {
         return subjectBooks;
     }
 
-    public Book searchBookByTitle(String title) {
-        for (Book book : books.values()) {
+    public Book getBookByTitle(String title) {
+        for (Book book : books) {
             if (book.getTitle().equals(title)) {
                 return book;
             }
@@ -222,17 +225,18 @@ public class Library {
     }
 
     public Borrower searchByName(String name) {
-        if (borrowers.containsKey(name.toLowerCase())) {
-            return borrowers.get(name.toLowerCase());
-        } else {
-            return null;
+        for (Borrower borrower : borrowers) {
+            if (borrower.getName().equals(name)) {
+                return borrower;
+            }
         }
+        return null;
     }
 
     public ArrayList<Borrower> searchBorrowersWhoBorrowed(String title) {
         ArrayList<Borrower> borrowersList = new ArrayList<>();
-        for (Borrower borrower : borrowers.values()) {
-            if (borrower.getBorrowedBooks().containsKey(title)) {
+        for (Borrower borrower : borrowers) {
+            if (borrower.getBorrowedBookByTitle(title) != null) {
                 borrowersList.add(borrower);
             }
         }
@@ -241,25 +245,54 @@ public class Library {
 
     public ArrayList<Borrower> searchBorrowerBylastName(String lastname) {
         ArrayList<Borrower> lastNames = new ArrayList<>();
-        for (Borrower borrower : borrowers.values()) {
+        for (Borrower borrower : borrowers) {
             if (borrower.getLastName().equalsIgnoreCase(lastname)) {
                 lastNames.add(borrower);
             }
         }
         return lastNames;
     }
-    public ArrayList<Borrower> borrowersWithBorrowedBooks(){
+
+    public ArrayList<Borrower> borrowersWithBorrowedBooks() {
         ArrayList<Borrower> borrowersWithBooks = new ArrayList<>();
-        for(Borrower borrower : borrowers.values()){
-            if(!borrower.getBorrowedBooks().isEmpty()){
+        for (Borrower borrower : borrowers) {
+            if (!borrower.getBorrowedBooks().isEmpty()) {
                 borrowersWithBooks.add(borrower);
             }
         }
         return borrowersWithBooks;
     }
 
+    public ArrayList<Book> searchBooksByTitle(String searchTerm) {
+        ArrayList<Book> foundBooks = new ArrayList<>();
+
+        try (Connection connection = DatabaseConnection.connect()) {
+            String sql = "SELECT * FROM books WHERE title LIKE ?";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                preparedStatement.setString(1, "%" + searchTerm + "%");
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        String title = resultSet.getString("title");
+                        String author = resultSet.getString("author");
+                        int stocks = resultSet.getInt("stocks");
+                        String subject = resultSet.getString("subject");
+
+                        Book book = new Book(title, author, stocks, subject);
+                        foundBooks.add(book);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace(); // Handle the exception according to your application's needs
+        }
+
+        return foundBooks;
+    }
+
 }
-/* searchByName
+/*
+ * searchByName
  * 1.add last name to borrowers
  * 2. search by last name
  * 4. Check every functions we currently have
@@ -337,6 +370,7 @@ public class Library {
 // System.out.println("Name: " + borrower.getName());
 // }
 
+// removeBookFromDatabase
 // }
 
 // // print Borrowers

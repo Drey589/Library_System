@@ -12,6 +12,7 @@ public class Book {
     private String author;
     private int stocks;
     private int id;
+    
     private String subject;
 
     public Book(String title, String author, int stocks, String subject) {

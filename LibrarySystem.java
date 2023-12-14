@@ -1,8 +1,10 @@
 package OOP5BookBorrower;
 
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
 
 public class LibrarySystem {
 
@@ -56,13 +58,24 @@ public class LibrarySystem {
                     library.initializeLibraryFromDatabase();
                     break;
                 case 2:
-                    System.out.print("Enter the title of the book to remove: ");
-                    String bookToRemove = scanner.nextLine();
-                    library.removeBookFromDatabase(bookToRemove);
+                System.out.print("Enter book to search: ");
+                String bookToSearch = scanner.nextLine();
+                int index = 1;
+                ArrayList<Book> similarBooksTitle = library.searchBooksByTitle(bookToSearch);
+                System.out.println("");
+                for(Book book : similarBooksTitle){
+                    System.out.println(index+". "+book.getTitle());
+                }
+                
+                System.out.print("Enter book number to remove: ");
+                int bookIndex = validChoice(scanner, 1, similarBooksTitle.size()+1)-1;
+                    Book bookToRemove = similarBooksTitle.get(bookIndex);
+                    library.removeBookFromDatabase(bookToRemove.getTitle());
+                    library.initializeLibraryFromDatabase();
                     break;
 
                 case 3:
-                    ArrayList<Book> books = new ArrayList<>(library.getBooks().values());
+                    ArrayList<Book> books = new ArrayList<>(library.getBooks());
                     library.printAllBooks(books);
                     break;
 
@@ -257,20 +270,20 @@ public class LibrarySystem {
                     do {
                         System.out.println("\nBorrowed Books:");
                         int index = 1;
-                        for (Book book : borrower.getBorrowedBooks().values()) {
+                        for (Book book : borrower.getBorrowedBooks()) {
                             System.out.println(index + ". " + book.getTitle() + " by " + book.getAuthor());
                             index++;
                         }
 
                         System.out.print("\nEnter the number of the book to return (or 0 to exit): ");
-                        int returnChoice = validChoice(scanner, 0, Integer.MAX_VALUE);
+                        int returnChoice = validChoice(scanner, 0, Integer.MAX_VALUE)-1;
 
                         if (returnChoice == 0) {
                             returnExit = true;
                         } else if (returnChoice > 0 && returnChoice <= borrower.getBorrowedBooks().size()) {
-                            List<Book> borrowedBooks = new ArrayList<>(borrower.getBorrowedBooks().values());
-                            Book selectedBook = borrowedBooks.get(returnChoice - 1);
-                            borrower.returnBookToDatabase(selectedBook);
+                            List<Book> borrowedBooks = borrower.getBorrowedBooks();
+                            Book selectedBook = borrowedBooks.get(returnChoice);
+                            borrower.returnBook(selectedBook,1);
                         } else {
                             System.out.println("Invalid choice. Please enter a valid option.");
                         }
@@ -280,7 +293,7 @@ public class LibrarySystem {
 
                 case 3:
                     System.out.println("");
-                    ArrayList<Book> borrowedBooks = borrower.getBorrowedBooksList();
+                    ArrayList<Book> borrowedBooks = borrower.getBorrowedBooks();
                     if (borrowedBooks.isEmpty()) {
                         System.out.println("No borrowed books!");
                     } else {
@@ -322,7 +335,7 @@ public class LibrarySystem {
             scanner.nextLine();
             switch (choice) {
                 case 1: 
-                    ArrayList<Book> books = new ArrayList<>(library.getBooks().values());
+                    ArrayList<Book> books = new ArrayList<>(library.getBooks());
                     library.printAllBooks(books);
                     break;
                     
@@ -342,8 +355,9 @@ public class LibrarySystem {
                     do {
                         System.out.print("\nEnter book to borrow: ");
                         String book = scanner.nextLine();
-                        if (library.getBooks().containsKey(book)) {
-                            borrower.borrowBookFromDatabase(library.getBooks().get(book));
+                        Book bookToBorrow = library.getBookByTitle(book);
+                        if (bookToBorrow != null) {
+                            borrower.borrowBook(bookToBorrow);
                         } else {
                             System.out.println("Book is not register!");
                         }
@@ -361,6 +375,7 @@ public class LibrarySystem {
             }
         } while (choice != 4);
     }
+
 /*  ADD BORROWERS WITH BORROWED BOOKS 
  *  Print Books by authors
  * Borrower found

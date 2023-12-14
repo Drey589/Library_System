@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import OOP5BookBorrower.database.DatabaseConnection;
 
@@ -16,7 +15,7 @@ public class Borrower {
     private int age;
     private String address;
     private String phoneNumber;
-    private HashMap<String, Book> borrowedBooks;
+    private ArrayList<Book> borrowedBooks;
 
     public Borrower(String name, String lastName, int age, String address, String phoneNumber) {
         this.name = name;
@@ -25,9 +24,25 @@ public class Borrower {
         this.age = age;
         this.address = address;
         this.phoneNumber = phoneNumber;
-        this.borrowedBooks = new HashMap<>();
+        this.borrowedBooks = new ArrayList<>();
         loadBorrowedBooksFromDatabase();
     }
+
+/*
+asdwer
+String search = "wer"
+ * SELECT * FRO< db LIKE "%%search%%"
+ * 
+ */
+
+ public Book getBorrowedBookByTitle(String title){
+    for(Book book : borrowedBooks){
+        if(book.getTitle().equals(title)){
+            return book;
+        }
+    }
+    return null;
+ }
     public void loadBorrowedBooksFromDatabase() {
         try (Connection connection = DatabaseConnection.connect()) {
             String sql = "SELECT book_id FROM borrowed_books WHERE borrower_id = ?";
@@ -40,7 +55,7 @@ public class Borrower {
                         Book borrowedBook = retrieveBookFromDatabase(bookId);
                         
                         if (borrowedBook != null) {
-                            borrowedBooks.put(borrowedBook.getTitle(), borrowedBook);
+                            borrowedBooks.add(borrowedBook);
                         }
                     }
                 }
@@ -116,16 +131,14 @@ public class Borrower {
         return lastName;
     }
 
-    public HashMap<String, Book> getBorrowedBooks() {
+    public ArrayList<Book> getBorrowedBooks() {
         return borrowedBooks;
     }
-    public ArrayList<Book> getBorrowedBooksList(){
-        return new ArrayList<>(borrowedBooks.values());
-    }
 
-    public void borrowBookFromDatabase(Book book) {
+
+    public void borrowBook(Book book) {
         if (book.getNumStocks() != 0) {
-            borrowedBooks.put(book.getTitle(), book);
+            borrowedBooks.add(book);
             book.decrementStocks();
             System.out.println(name + " borrowed the book: " + book.getTitle());
 
@@ -145,8 +158,8 @@ public class Borrower {
         }
     }
 
-    public void returnBookToDatabase(Book book) {
-        borrowedBooks.remove(book.getTitle());
+    public void returnBook(Book book,int index) {
+        borrowedBooks.remove(index);
         System.out.println(name + " returned the book: " + book.getTitle());
         book.incrementStocks();
 

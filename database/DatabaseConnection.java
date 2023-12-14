@@ -1,4 +1,5 @@
-package OOP5BookBorrower.database;
+package database;
+
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -28,7 +29,7 @@ public class DatabaseConnection {
         if (connection != null) {
             try {
                 connection.close();
-                // System.out.println("Connection closed.");
+                // System.out.println("Connection closed.
             } catch (SQLException e) {
                 e.printStackTrace();
             }
